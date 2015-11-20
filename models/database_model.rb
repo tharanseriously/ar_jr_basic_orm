@@ -163,12 +163,7 @@ module Database
       values = self.attributes.values
       marks  = Array.new(fields.length) { '?' }.join(',')
 
-      if self.to_s.include? 'Student'
-        insert_sql = "INSERT INTO students (#{fields.join(',')}) VALUES (#{marks})"
-      elsif
-         insert_sql = "INSERT INTO cohorts (#{fields.join(',')}) VALUES (#{marks})"
-      end
-
+      insert_sql = "INSERT INTO #{self.class.to_s}s (#{fields.join(',')}) VALUES (#{marks})"
 
       results = Database::Model.execute(insert_sql, *values)
 
@@ -185,11 +180,7 @@ module Database
 
       update_clause = fields.map { |field| "#{field} = ?" }.join(',')
 
-      if self.to_s.include? 'Student'
-        update_sql = "UPDATE students SET #{update_clause} WHERE id = ?"
-      else
-        update_sql = "UPDATE cohorts SET #{update_clause} WHERE id = ?"
-      end
+      update_sql = "UPDATE #{self.class.to_s}s SET #{update_clause} WHERE id = ?"
 
       # We have to use the (potentially) old ID attribute in case the user has re-set it.
 
