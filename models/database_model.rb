@@ -19,7 +19,35 @@ module Database
       @old_attributes = @attributes.dup
     end
 
-    def self.save
+    def self.all
+      Database::Model.execute("SELECT * FROM #{self.to_s}s").map do |row|
+        self.new(row)
+      end
+    end
+
+    def self.create(attributes)
+      record = self.new(attributes)
+      record.save
+
+      record
+    end
+
+    def self.where(query, *args)
+
+      Database::Model.execute("SELECT * FROM #{self.to_s.downcase}s WHERE #{query}", *args).map do |row|
+        self.new(row)
+      end
+    end
+
+    def self.find(pk)
+      self.where('id = ?', pk).first
+    end
+
+    def new_record?
+      self.attributes[:id].nil?
+    end
+
+    def save
       if new_record?
         results = insert!
       else
@@ -32,13 +60,13 @@ module Database
       results
     end
 
-    def self.[](attribute)
+    def [](attribute)
       raise_error_if_invalid_attribute!(attribute)
 
       @attributes[attribute]
     end
 
-    def self.[]=(attribute, value)
+    def []=(attribute, value)
       raise_error_if_invalid_attribute!(attribute)
 
       @attributes[attribute] = value
@@ -61,6 +89,7 @@ module Database
 
       # Return the results as a Hash of field/value pairs
       # instead of an Array of values
+
       @connection.results_as_hash  = true
 
       # Automatically translate data from database into
@@ -99,6 +128,7 @@ module Database
       #   raise_error_if_invalid_attribute!("id")
       # and
       #   raise_error_if_invalid_attribute!(["id", "name"])
+
       Array(attributes).each do |attribute|
         unless valid_attribute?(attribute)
           raise InvalidAttributeError, "Invalid attribute for #{self.class}: #{attribute}"
@@ -124,5 +154,47 @@ module Database
         value
       end
     end
+
+    def insert!
+      self[:created_at] = DateTime.now
+      self[:updated_at] = DateTime.now
+
+      fields = self.attributes.keys
+      values = self.attributes.values
+      marks  = Array.new(fields.length) { '?' }.join(',')
+
+      if self.to_s.include? 'Student'
+        insert_sql = "INSERT INTO students (#{fields.join(',')}) VALUES (#{marks})"
+      elsif
+         insert_sql = "INSERT INTO cohorts (#{fields.join(',')}) VALUES (#{marks})"
+      end
+
+
+      results = Database::Model.execute(insert_sql, *values)
+
+      # This fetches the new primary key and updates this instance
+      self.class[:id] = Database::Model.last_insert_row_id
+      results
+    end
+
+    def update!
+      self[:updated_at] = DateTime.now
+
+      fields = self.attributes.keys
+      values = self.attributes.values
+
+      update_clause = fields.map { |field| "#{field} = ?" }.join(',')
+
+      if self.to_s.include? 'Student'
+        update_sql = "UPDATE students SET #{update_clause} WHERE id = ?"
+      else
+        update_sql = "UPDATE cohorts SET #{update_clause} WHERE id = ?"
+      end
+
+      # We have to use the (potentially) old ID attribute in case the user has re-set it.
+
+      Database::Model.execute(update_sql, *values, self.old_attributes[:id])
+    end
+
   end
 end

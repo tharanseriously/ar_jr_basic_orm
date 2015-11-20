@@ -1,35 +1,10 @@
 class Student < Database::Model
-  def self.all
-    Database::Model.execute("SELECT * FROM students").map do |row|
-      Student.new(row)
-    end
-  end
 
-  def self.create(attributes)
-    record = self.new(attributes)
-    record.save
-
-    record
-  end
-
-  def self.where(query, *args)
-    Database::Model.execute("SELECT * FROM students WHERE #{query}", *args).map do |row|
-      Student.new(row)
-    end
-  end
-
-  def self.find(pk)
-    self.where('id = ?', pk).first
-  end
 
   self.attribute_names =  [:id, :cohort_id, :first_name, :last_name, :email,
                            :gender, :birthdate, :created_at, :updated_at]
 
   attr_reader :attributes, :old_attributes
-
-  def new_record?
-    self[:id].nil?
-  end
 
   def cohort
     Cohort.where('id = ?', self[:cohort_id]).first
@@ -43,33 +18,42 @@ class Student < Database::Model
 
   private
 
-  def insert!
-    self[:created_at] = DateTime.now
-    self[:updated_at] = DateTime.now
+  # def insert!
+  #   self.class[:created_at] = DateTime.now
+  #   self.class[:updated_at] = DateTime.now
 
-    fields = self.attributes.keys
-    values = self.attributes.values
-    marks  = Array.new(fields.length) { '?' }.join(',')
+  #   fields = self.class.attributes.keys
+  #   values = self.class.attributes.values
+  #   marks  = Array.new(fields.length) { '?' }.join(',')
 
-    insert_sql = "INSERT INTO students (#{fields.join(',')}) VALUES (#{marks})"
+  #   if self.class == 'Student'
+  #     insert_sql = "INSERT INTO students (#{fields.join(',')}) VALUES (#{marks})"
+  #   elsif self.class == 'Cohort'
+  #      insert_sql = "INSERT INTO cohorts (#{fields.join(',')}) VALUES (#{marks})"
+  #   end
 
-    results = Database::Model.execute(insert_sql, *values)
+  #   results = Database::Model.execute(insert_sql, *values)
 
-    # This fetches the new primary key and updates this instance
-    self[:id] = Database::Model.last_insert_row_id
-    results
-  end
+  #   # This fetches the new primary key and updates this instance
+  #   self.class[:id] = Database::Model.last_insert_row_id
+  #   results
+  # end
 
-  def update!
-    self[:updated_at] = DateTime.now
+  # def update!
+  #   self[:updated_at] = DateTime.now
 
-    fields = self.attributes.keys
-    values = self.attributes.values
+  #   fields = self.attributes.keys
+  #   values = self.attributes.values
 
-    update_clause = fields.map { |field| "#{field} = ?" }.join(',')
-    update_sql = "UPDATE students SET #{update_clause} WHERE id = ?"
+  #   update_clause = fields.map { |field| "#{field} = ?" }.join(',')
 
-    # We have to use the (potentially) old ID attribute in case the user has re-set it.
-    Database::Model.execute(update_sql, *values, self.old_attributes[:id])
-  end
+  #   if self.class == 'Student'
+  #     update_sql = "UPDATE students SET #{update_clause} WHERE id = ?"
+  #   elsif
+  #     update_sql = "UPDATE cohorts SET #{update_clause} WHERE id = ?"
+  #   end
+
+  #   # We have to use the (potentially) old ID attribute in case the user has re-set it.
+  #   Database::Model.execute(update_sql, *values, self.old_attributes[:id])
+  # end
 end

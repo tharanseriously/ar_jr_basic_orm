@@ -1,3 +1,4 @@
 require_relative 'app'
 
-p Cohort.find(1).attributes[:id]
+cohort = Cohort.find(1)
+p cohort
